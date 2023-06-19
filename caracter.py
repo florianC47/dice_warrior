@@ -1,0 +1,107 @@
+from __future__ import annotations #pour pouvoir utiliser les annotation de type pour caractère car le type class caractère n'est pas encore reconnu car on est en train de le codé dans la class caractère (voir ligne 35)
+
+#import dice
+from dice import Dice, RiggedDice, WoodDice #importer la classe Dice du module dice.py pour avoir acces au class dans ce fichier. il import seulement les class demandé + la partie main en dessous des class
+from rich import print #package python ici pour pouvoir utiliser les couleurs dans la console lors des prints ; écrase pyton pour le remplacer par rich.
+
+class Caracter:
+    label = "Caracter"
+
+    def __init__(self, name, max_health = 20, attack = 8, defense = 3, dice= Dice()):
+        
+        self.name = name
+        self.max_health = max_health
+        self.attack_value = attack
+        self.defense_value = defense
+        self.health = max_health
+        self.dice=dice #on met le dé en paramettre du joueur ainsi on peut directement modifier avec quelle type de dé les joueur joue (dé de 6 face ou 8 face...)
+
+
+    def __str__(self): #methode magique qui permet de définir ce qui sera afficher quand on print un objet de cette classe
+        return f"I'm {self.name} a {self.get_label()} with {self.max_health} health points, {self.attack_value} attack points and {self.defense_value} defense points"
+    
+    def get_label(self): #pour eviter d'écrire : type(self).label en le remplaçant par self.get_label() 
+        return type(self).label
+    
+    def get_name(self):
+        return self.name
+    
+    def get_defense_value(self):
+        return self.defense_value
+        
+    def is_alive(self):
+        return self.health > 0
+    
+    def regenerate(self):
+        self.health = self.max_health
+    
+    def show_healthbar(self):
+        print(f"[{'🅞 '*self.health}{'𐤏 '*(self.max_health - self.health)}] {self.health}/{self.max_health}hp")
+
+    def descrease_helth(self, amount):
+        self.health -= amount 
+        if (self.health < 0):
+            self.health = 0
+
+    def compute_attack(self, result, target): #refactorisation de  damages=  self.attack_value + result qui était en ligne 46 
+        return self.attack_value + result
+
+    def attack(self, target: Caracter): #quand quelqu'un attaque, il doit cibler quelqu'un pour pouvoir lui assigné des dégats (target est un paramettre)
+        if(self.is_alive()): #si le joueur est mort il ne peut pas attaquer
+            result = self.dice.roll()
+            damages=  self.compute_attack(result, target)
+            print(f"⚔️  {self.get_label()}  {self.name}  attaque {target.get_name()} with {damages} damages (att: {self.attack_value} + valeur du dé: {result}) !")
+            target.defend(damages, self) #d'avoir importé la class Caracter du futur on peut utiliser la methode defend de la class Caracter" ; self: on envoi soi même en paramettre pour pouvoir afficher le nom du joueur qui attaque et le nom du joueur qui se defend
+    
+    def compute_defend(self, damages, result,):
+        return damages - self.defense_value - result
+
+    def defend(self, damages, attacker: Caracter):
+        result = self.dice.roll()
+        wounds = self.compute_defend(damages, result)
+        print(f"🛡️  {self.get_label()}  {self.name}  defend against {attacker.get_label()} {attacker.get_name()} for {damages} damages and take {wounds} wounds (dmg: {damages} - def: {self.defense_value} - point de protection du dé {result}) !")
+        self.descrease_helth(wounds)
+        self.show_healthbar()
+
+class Warrior(Caracter): #on va lui ajouter des bonus de déga +3
+    label = "[red]Warrior[/red]"
+
+    def compute_attack(self, result, target):
+        print("🪓  axe your in face ! (att bonus: +3)")
+        return super().compute_attack(result, target) + 3 #super() permet d'appeler la methode de la classe parente (Caracter)  
+
+class Mage(Caracter): #on va lui ajouter des bonus de défense +3
+    label = "[blue]Mage[/blue]"
+
+    def compute_defend(self, damages, result):
+        print("🧙  magic shield ! (def bonus: -3)")
+        return super().compute_defend( damages, result) - 3
+
+class Rogue(Caracter): #ignore la defence de son adversaire
+    label = "[green]Rogue[/green]"
+
+    def compute_attack (self, result, target: Caracter):
+        print ("🔪  assasin évite la défense!")
+        return super().compute_attack( result, target) + target.get_defense_value()
+        
+
+
+
+# main
+
+if __name__ == "__main__": 
+
+    print(f"variable name du module Caracter : {__name__}"),  #ce print est pour ilustre la valeur de __name__ dans le module Caracter mais seul if (__name__ == "__main__"): est utile pour eviter que la console imprime tous les print des autre fichier.
+
+
+    car1 = Warrior("James", 20, 8, 3, Dice())
+    car2 = Rogue("Elise", 20, 8, 3, Dice())
+    
+    print (car1)
+    print (car2)
+
+  
+    while (car1.is_alive() and car2.is_alive()):
+        car1.attack(car2)
+        car2.attack(car1)
+   
